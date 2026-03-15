@@ -1,0 +1,16 @@
+{
+  "name": "تامبا-فيورا",
+  "short_name": "تامبا-فيورا",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2980b9",
+  "description": "App to create booking contracts.",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
