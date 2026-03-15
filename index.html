@@ -1,1 +1,806 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام منتجعات ال دواس المحاسبي</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#2980b9">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        :root { --brand-blue: #2980b9; --brand-green: #27ae60; --brand-red: #e74c3c; --brand-gold: #f1c40f; }
+        body { font-family: 'Times New Roman', Arial, Tahoma, sans-serif; direction: rtl; margin: 0; padding: 0; background: #fdf5e6; text-align: right; }
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #2c3e50; z-index: 2000; display: flex; align-items: center; justify-content: center; flex-direction: column; color: white; }
+        .tab-nav { display: flex; background: var(--brand-blue); position: sticky; top: 0; z-index: 1000; }
+        .tab-nav button { flex: 1; padding: 15px; border: none; background: none; color: white; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; font-size: 14px; }
+        .tab-nav button.active { border-bottom: 3px solid #fff; background: rgba(255,255,255,0.1); }
+        .tab-content { display: none; padding: 10px; }
+        .tab-content.active { display: block; }
+        .container { max-width: 800px; margin: 10px auto; padding: 20px; background: #fff; border-radius: 14px; border: 3px solid var(--brand-blue); }
+        h1 { text-align: center; color: #2c3e50; font-size: 22px; margin-bottom: 5px; }
+        .title-underline { width: 80px; height: 3px; background: var(--brand-blue); margin: 0 auto 15px; }
+        form, .card { max-width: 520px; margin: 10px auto; background: #fff; padding: 16px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.07); }
+        label { display: block; margin-top: 10px; font-weight: bold; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border-radius: 8px; border: 1px solid #ccc; text-align: right; font-size: 16px; }
+        .btn-primary { background: var(--brand-green); color: white; border: none; padding: 12px; width: 100%; border-radius: 10px; cursor: pointer; margin-top: 15px; font-weight: bold; font-size: 16px; }
+        .table-wrapper { width: 100%; overflow-x: auto; margin-top: 15px; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background: white; table-layout: auto; }
+        th, td { border: 1px solid #eee; padding: 6px 4px; text-align: center; font-size: 12px; white-space: nowrap; }
+        th:last-child, td:last-child { background: #f9f9f9; font-weight: bold; border-right: 2px solid #ddd; }
+        @media (max-width: 600px) { th, td { font-size: 11px; padding: 4px 2px; } h1 { font-size: 18px; } }
+        .income { color: var(--brand-green); font-weight: bold; }
+        .expense { color: var(--brand-red); font-weight: bold; }
+        #contract { display: none; margin-top: 20px; }
+        @media print { .tab-nav, .actions, form, .card, #loginOverlay { display: none !important; } .container { border: none; } }
+        .options-row { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 15px; margin-top: 10px; direction: rtl; }
+        .option-block { display: flex; align-items: center; gap: 5px; font-size: 14px; }
+        .option-block input { width: auto; margin: 0; }
+        .text-red { color: var(--brand-red); font-weight: bold; }
+        .text-green { color: var(--brand-green); font-weight: bold; }
+        .text-blue { color: #2980b9; font-weight: bold; }
+        .text-gold { color: #d4af37; font-weight: bold; }
+
+        /* تنسيق الشروط الجديد */
+        #termsList { list-style: none; padding: 0; margin: 15px 0; text-align: right; }
+        #termsList li { white-space: nowrap; display: flex; align-items: center; direction: rtl; font-size: 13px; margin-bottom: 6px; }
+        #termsList li::before { content: "•"; color: #2c3e50; font-weight: bold; margin-left: 8px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <h2>منتجعات ال دواس</h2>
+    <p>تسجيل الدخول باستخدام حساب قوقل</p>
+    <div id="g_id_onload"
+         data-client_id="809378312368-be35pci821otu0mdurik53imidefmvhj.apps.googleusercontent.com"
+         data-callback="handleCredentialResponse"
+         data-auto_prompt="false">
+    </div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-shape="rectangular"></div>
+</div>
+    <div id="termsModalOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:3000; align-items:center; justify-content:center; direction:rtl;">
+    <div class="card" style="width:90%; max-width:500px; max-height:80vh; overflow-y:auto; background:#fff; padding:20px; border-radius:10px;">
+        <h2 style="text-align:center; color:var(--brand-blue); margin-top:0;">إدارة الشروط الإضافية</h2>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="text" id="newCustomTerm" placeholder="اكتب الشرط الجديد هنا..." style="margin:0;">
+            <button type="button" onclick="addCustomTerm()" class="btn-primary" style="width:auto; margin:0; padding:10px 20px;">إضافة</button>
+        </div>
+        <div id="customTermsContainer" style="display:flex; flex-direction:column; gap:10px;">
+            </div>
+        <button type="button" onclick="closeTermsModal()" class="btn-primary" style="background:var(--brand-green); margin-top:20px;">حفظ وإغلاق</button>
+    </div>
+</div>
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<nav class="tab-nav">
+    <button class="active" onclick="openTab(event, 'reservationTab')">العقود</button>
+    <button onclick="openTab(event, 'dailyTab')">الحسابات</button>
+    <button onclick="openTab(event, 'reportTab')">التقارير</button>
+    <button onclick="logout()" style="background:var(--brand-red); flex:0.3; margin-right:5px; border-radius:5px;">خروج</button>
+</nav>
+
+<div id="reservationTab" class="tab-content active">
+    <h1>إنشاء عقد إيجار</h1>
+    <div class="title-underline"></div>
+    <form id="bookingForm">
+        <label>اختر المنتجع:</label>
+        <select id="resortSelect">
+            <option value="" disabled selected>اختر المنتجع</option>
+            <option value="منتجع تامبا">منتجع تامبا</option>
+            <option value="منتجع فيورالاند">منتجع فيورالاند</option>
+        </select>
+        <div class="options-row"><div class="option-block"><input type="checkbox" id="bookBothResorts"><label>حجز المنتجعين معاً</label></div></div>
+        <label>اسم المستأجر:</label>
+        <input type="text" id="customerName" required>
+        <label>العربون:</label>
+        <input type="number" id="deposit" required>
+        <label>المتبقي:</label>
+        <input type="number" id="remaining" required>
+        <label>تاريخ الحجز:</label>
+        <input type="date" id="bookingDate" required>
+        <div class="options-row">
+            <div class="option-block"><input type="checkbox" id="overnight"><label>مبيت</label></div>
+            <div class="option-block"><input type="checkbox" id="noPool"><label>بدون مسبح</label></div>
+            <div class="option-block"><input type="checkbox" id="winterPeriod"><label>فترة الشتوية</label></div>
+            <div class="option-block"><input type="checkbox" id="ramadanPeriod"><label style="color: #d4af37; font-weight: bold;">فترة رمضان 🌙</label></div>
+            <div class="option-block"><input type="checkbox" id="twelveHours"><label class="text-blue">١٢ ساعة</label></div>
+        </div>
+        <div id="tampaOptions" style="display:none; flex-direction: row; align-items: center; justify-content: flex-end; gap: 15px;">
+            <span style="font-weight:bold;">خاص بتامبا:</span>
+            <div class="option-block"><input type="checkbox" id="summer"><label for="summer">صيف</label></div>
+            <div class="option-block"><input type="checkbox" id="winter"><label for="winter">شتاء</label></div>
+        </div>
+        <button type="button" class="btn-primary" style="background: var(--brand-blue); margin-top: 10px;" onclick="openTermsModal()">إدارة الشروط الإضافية 📋</button>
+        <button type="submit" class="btn-primary">عرض العقد</button>
+    </form>
+
+    <div id="contract" class="container">
+        <h1 id="contractTitle"></h1>
+        <div id="bookingNumber" class="booking-number"></div>
+        <div id="introText"></div>
+        <div id="bookingDetails"></div>
+        <hr>
+        <div class="terms">
+            <h3>الشروط والأحكام:</h3>
+            <ul id="termsList"></ul>
+            <p style="text-align:center"><strong>الرجاء الرد بكلمة موافق</strong></p>
+        </div>
+        <div id="contractFooter" class="contract-footer"></div>
+        <div class="actions" style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+            <button id="saveAllBtn" class="btn-primary" style="background:var(--brand-green)">مشاركة واتساب + حفظ مالية</button>
+            <button id="calendarICSBtn" class="btn-primary" style="background:var(--brand-blue)">إضافة للتقويم + حفظ مالية</button>
+        </div>
+    </div>
+</div>
+
+<div id="dailyTab" class="tab-content">
+    <h1>الحسابات اليومية</h1>
+    <div class="card">
+        <h3>إضافة/تعديل عملية</h3>
+        <input type="hidden" id="editId">
+        <input type="date" id="transDate">
+        <select id="transType">
+            <option value="إيجار">إيجار (دخل)</option>
+            <option value="مصروفات">مصروفات</option>
+            <option value="جمعية">جمعية / قروض</option>
+            <option value="أخرى">أخرى</option>
+        </select>
+        <input type="number" id="transAmount" placeholder="المبلغ">
+        <input type="text" id="transDesc" placeholder="الوصف (اسم المستأجر أو نوع المصروف)">
+        <button onclick="saveTransaction()" id="mainSaveBtn" class="btn-primary">حفظ العملية</button>
+    </div>
+
+    <div class="card">
+        <div class="filter-box">
+            <input type="text" id="searchQuery" placeholder="بحث بالاسم أو الوصف..." oninput="renderDailyTable()">
+            <select id="filterType" onchange="renderDailyTable()">
+                <option value="الكل">كل الأنواع</option>
+                <option value="إيجار">إيجار</option>
+                <option value="مصروفات">مصروفات</option>
+                <option value="جمعية">جمعية / قروض</option>
+                <option value="أخرى">أخرى</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-wrapper">
+        <table id="dailyTable">
+            <thead><tr><th>التاريخ</th><th>النوع</th><th>الوصف</th><th>المبلغ</th><th>إجراء</th></tr></thead>
+            <tbody id="dailyTableBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div id="reportTab" class="tab-content">
+    <h1 id="reportMainTitle">ملخص السنة 2026</h1>
+    <div class="title-underline"></div>
+    <div class="card" style="max-width: 200px; margin-bottom: 20px;">
+        <label>اختر السنة:</label>
+        <select id="yearFilter" onchange="renderReportTable()"></select>
+    </div>
+    <div class="table-wrapper">
+        <table id="reportTable">
+            <thead>
+                <tr>
+                    <th>الشهر</th>
+                    <th>الدخل (+)</th>
+                    <th>المصروفات (-)</th>
+                    <th style="background-color: #eef9f7; color: #27ae60;">الربح العام</th> 
+                    <th>الجمعية (-)</th>
+                    <th>أخرى (-)</th>
+                    <th>الصافي</th>
+                </tr>
+            </thead>
+            <tbody id="reportTableBody"></tbody>
+        </table>
+    </div>
+    <div class="actions" style="display:flex; gap:10px; margin-top:20px;">
+        <button onclick="exportToExcel()" class="btn-primary" style="background:#1d6f42">تصدير Excel</button>
+        <button onclick="exportToImage()" class="btn-primary" style="background:#c0392b">تصدير صورة / PDF</button>
+    </div>
+</div>
+
+<script>
+// 1. الإعدادات والمزامنة
+let currentUserEmail = localStorage.getItem('thalathat_user_session') || ""; 
+let transactions = JSON.parse(localStorage.getItem('thalathat_v5_data')) || [];
+let isCurrentSaved = false;
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyR-wiPwm-KwTFVq3zBTy8FH8NEVQyFWuRQrtrzDfNI9WRhPwStd_ITAhynDpQiIwIJ/exec";
+
+    // --- دوال إدارة الشروط الإضافية ---
+let customTerms = JSON.parse(localStorage.getItem('thalathat_custom_terms')) || [];
+
+function openTermsModal() {
+    renderCustomTerms();
+    document.getElementById('termsModalOverlay').style.display = 'flex';
+}
+
+function closeTermsModal() {
+    document.getElementById('termsModalOverlay').style.display = 'none';
+    
+    // تحديث العقد تلقائياً إذا كان معروضاً بالفعل على الشاشة
+    if (document.getElementById('contract').style.display === 'block') {
+        showContract();
+    }
+}
+
+function renderCustomTerms() {
+    // حفظ ما تم تحديده لتجنب مسحه عند التحديث
+    const checkedIds = Array.from(document.querySelectorAll('.term-checkbox:checked')).map(cb => cb.value);
+    
+    const container = document.getElementById('customTermsContainer');
+    container.innerHTML = '';
+    customTerms.forEach((term) => {
+        const isChecked = checkedIds.includes(term.id.toString()) ? 'checked' : '';
+        container.innerHTML += `
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
+                <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                    <input type="checkbox" class="term-checkbox" value="${term.id}" id="term_${term.id}" ${isChecked} style="width:auto; margin:0; transform:scale(1.2);">
+                    <label for="term_${term.id}" style="margin:0; font-weight:normal; font-size:14px; cursor:pointer;">${term.text}</label>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <span onclick="editCustomTerm(${term.id})" style="cursor:pointer;" title="تعديل">✏️</span>
+                    <span onclick="deleteCustomTerm(${term.id})" style="cursor:pointer;" title="حذف">🗑️</span>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function addCustomTerm() {
+    const input = document.getElementById('newCustomTerm');
+    const text = input.value.trim();
+    if(text) {
+        customTerms.push({ id: Date.now(), text: text });
+        localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
+        input.value = '';
+        renderCustomTerms();
+    }
+}
+
+function deleteCustomTerm(id) {
+    if(confirm("هل تريد حذف هذا الشرط نهائياً؟")) {
+        customTerms = customTerms.filter(t => t.id !== id);
+        localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
+        renderCustomTerms();
+    }
+}
+
+function editCustomTerm(id) {
+    const term = customTerms.find(t => t.id === id);
+    const newText = prompt("تعديل الشرط:", term.text);
+    if(newText !== null && newText.trim() !== "") {
+        term.text = newText.trim();
+        localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
+        renderCustomTerms();
+    }
+}
+
+// دالة جلب الشروط التي تم وضع (صح) عليها
+function getSelectedCustomTerms() {
+    const checkboxes = document.querySelectorAll('.term-checkbox:checked');
+    let selectedTexts = [];
+    checkboxes.forEach(cb => {
+        const term = customTerms.find(t => t.id == cb.value);
+        if(term) selectedTexts.push(term.text);
+    });
+    return selectedTexts;
+}
+
+// فك تشفير بيانات الدخول
+function parseJwt(token) {
+    try {
+        let base64Url = token.split('.')[1];
+        let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        let jsonPayload = decodeURIComponent(window.atob(base64).split('').map(function(c) {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (e) {
+        console.error("خطأ فك تشفير الهوية:", e);
+        return null;
+    }
+}
+
+function handleCredentialResponse(response) {
+    const user = parseJwt(response.credential);
+    if (user && user.email) {
+        currentUserEmail = user.email;
+        localStorage.setItem('thalathat_user_session', currentUserEmail);
+        document.getElementById('loginOverlay').style.display = 'none';
+        loadSystem(); 
+    }
+}
+
+function logout() {
+    if(confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem('thalathat_user_session');
+        localStorage.removeItem('thalathat_v5_data');
+        location.reload();
+    }
+}
+
+// المزامنة
+async function pushToCloud() {
+    if (!currentUserEmail) return;
+    try {
+        await fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({ userEmail: currentUserEmail, data: transactions })
+        });
+    } catch (e) { console.error("خطأ مزامنة"); }
+}
+
+async function pullFromCloud() {
+    if (!currentUserEmail) return;
+    try {
+        const response = await fetch(`${SCRIPT_URL}?userEmail=${currentUserEmail}`);
+        const cloudData = await response.json();
+        if (Array.isArray(cloudData)) {
+            transactions = cloudData;
+            localStorage.setItem('thalathat_v5_data', JSON.stringify(transactions));
+            renderDailyTable();
+            renderReportTable();
+        }
+    } catch (e) { console.log("لا توجد بيانات سحابية"); }
+}
+
+async function loadSystem() {
+    if (currentUserEmail) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        const today = new Date();
+        document.getElementById('transDate').valueAsDate = today;
+        document.getElementById('bookingDate').valueAsDate = today;
+        await pullFromCloud();
+        renderDailyTable();
+        renderReportTable();
+    }
+}
+
+function saveSystem() {
+    localStorage.setItem('thalathat_v5_data', JSON.stringify(transactions));
+    renderDailyTable();
+    renderReportTable();
+    pushToCloud();
+}
+
+// 2. إدارة التبويبات والحذف
+function openTab(evt, tabId) {
+    let contents = document.getElementsByClassName("tab-content");
+    for (let c of contents) c.classList.remove("active");
+    let btns = document.querySelectorAll(".tab-nav button");
+    for (let b of btns) b.classList.remove("active");
+    document.getElementById(tabId).classList.add("active");
+    evt.currentTarget.classList.add("active");
+}
+
+function deleteTrans(id) {
+    if(confirm("هل أنت متأكد من حذف هذه العملية؟")) {
+        transactions = transactions.filter(t => t.id != id);
+        saveSystem();
+    }
+}
+
+// 3. الحسابات والتقارير
+function renderDailyTable() {
+    const tbody = document.getElementById('dailyTableBody');
+    const query = (document.getElementById('searchQuery').value || "").toLowerCase();
+    const typeFilter = document.getElementById('filterType').value;
+    tbody.innerHTML = '';
+    
+    transactions.filter(t => t.owner === currentUserEmail)
+        .filter(t => (typeFilter === "الكل" || t.type === typeFilter))
+        .filter(t => (t.desc.toLowerCase().includes(query)))
+        .sort((a,b) => new Date(b.date) - new Date(a.date))
+        .forEach(t => {
+            tbody.innerHTML += `<tr>
+                <td>${t.date}</td>
+                <td>${t.type}</td>
+                <td>${t.desc}</td>
+                <td class="${t.type === 'إيجار' ? 'income' : 'expense'}">${t.amount}</td>
+                <td>
+                    <span onclick="editTrans(${t.id})" style="cursor:pointer">✏️</span> 
+                    <span onclick="deleteTrans(${t.id})" style="cursor:pointer">🗑️</span>
+                </td>
+            </tr>`;
+        });
+}
+
+function saveTransaction() {
+    const editId = document.getElementById('editId').value;
+    const date = document.getElementById('transDate').value;
+    const type = document.getElementById('transType').value;
+    const amount = parseFloat(document.getElementById('transAmount').value);
+    const desc = document.getElementById('transDesc').value;
+
+    if(!date || isNaN(amount)) return alert("أكمل البيانات");
+
+    if (editId) {
+        const idx = transactions.findIndex(t => t.id == editId);
+        if (idx !== -1) transactions[idx] = { ...transactions[idx], date, type, amount, desc };
+    } else {
+        transactions.push({ id: Date.now(), date, type, amount, desc, owner: currentUserEmail });
+    }
+    saveSystem();
+    resetFinanceForm();
+}
+
+function editTrans(id) {
+    const t = transactions.find(item => item.id == id);
+    if(t) {
+        document.getElementById('editId').value = t.id;
+        document.getElementById('transDate').value = t.date;
+        document.getElementById('transType').value = t.type;
+        document.getElementById('transAmount').value = t.amount;
+        document.getElementById('transDesc').value = t.desc;
+        const btn = document.getElementById('mainSaveBtn');
+        btn.textContent = "تحديث العملية";
+        btn.style.background = "var(--brand-gold)";
+    }
+}
+
+function resetFinanceForm() {
+    document.getElementById('editId').value = "";
+    document.getElementById('transAmount').value = "";
+    document.getElementById('transDesc').value = "";
+    document.getElementById('transDate').valueAsDate = new Date();
+    const btn = document.getElementById('mainSaveBtn');
+    btn.textContent = "حفظ العملية";
+    btn.style.background = "var(--brand-green)";
+}
+
+function updateYearSelector() {
+    const sel = document.getElementById('yearFilter');
+    let years = transactions.map(t => new Date(t.date).getFullYear());
+    years.push(new Date().getFullYear());
+    const unique = [...new Set(years)].sort((a,b) => b-a);
+    const current = sel.value || new Date().getFullYear().toString();
+    sel.innerHTML = unique.map(y => `<option value="${y}">${y}</option>`).join('');
+    sel.value = current;
+}
+
+function renderReportTable() {
+    updateYearSelector();
+    const year = document.getElementById('yearFilter').value;
+    document.getElementById('reportMainTitle').textContent = `ملخص السنة ${year}`;
+    const tbody = document.getElementById('reportTableBody');
+    tbody.innerHTML = '';
+    const months = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+    const summary = {};
+    
+    let tInc=0, tExp=0, tGenProf=0, tLoan=0, tOth=0;
+
+    transactions.filter(t => t.owner === currentUserEmail && new Date(t.date).getFullYear().toString() === year)
+    .forEach(t => {
+        const m = new Date(t.date).getMonth();
+        if (!summary[m]) summary[m] = { inc:0, exp:0, loan:0, other:0 };
+        if (t.type === 'إيجار') summary[m].inc += t.amount;
+        else if (t.type === 'مصروفات') summary[m].exp += t.amount;
+        else if (t.type === 'جمعية') summary[m].loan += t.amount;
+        else summary[m].other += t.amount;
+    });
+
+    Object.keys(summary).sort((a,b) => a-b).forEach(m => {
+        const s = summary[m];
+        const generalProfit = s.inc - s.exp; 
+        const net = s.inc - (s.exp + s.loan + s.other);
+        
+        const genProfClass = generalProfit >= 0 ? 'income' : 'expense';
+        
+        tInc+=s.inc; tExp+=s.exp; tGenProf+=generalProfit; tLoan+=s.loan; tOth+=s.other;
+
+        tbody.innerHTML += `<tr>
+            <td>${months[m]}</td>
+            <td class="income">${s.inc}</td>
+            <td class="expense">${s.exp}</td>
+            <td class="${genProfClass}" style="font-weight:bold; background:#f4fbf9;">${generalProfit}</td> <td>${s.loan}</td>
+            <td>${s.other}</td>
+            <td class="${net>=0?'income':'expense'}">${net}</td>
+        </tr>`;
+    });
+
+    if(tInc+tExp > 0) {
+        const totalNet = tInc - (tExp + tLoan + tOth);
+        const totalGenProfClass = tGenProf >= 0 ? 'income' : 'expense';
+
+        tbody.innerHTML += `
+            <tr style="background:#eee; font-weight:bold;">
+                <td>الإجمالي</td>
+                <td class="income">${tInc}</td>
+                <td class="expense">${tExp}</td>
+                <td class="${totalGenProfClass}" style="background:#d1f2eb;">${tGenProf}</td> <td>${tLoan}</td>
+                <td>${tOth}</td>
+                <td class="${totalNet>=0?'income':'expense'}">${totalNet}</td>
+            </tr>`;
+    }
+}
+
+// 4. منطق العقود
+document.getElementById('resortSelect').addEventListener('change', function() {
+    const tampaDiv = document.getElementById('tampaOptions');
+    const isTampa = (this.value === 'منتجع تامبا' || document.getElementById('bookBothResorts').checked);
+    if(tampaDiv) tampaDiv.style.display = isTampa ? 'flex' : 'none';
+});
+
+document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    isCurrentSaved = false; 
+    showContract(); 
+    document.getElementById('contract').scrollIntoView({ behavior: 'smooth' });
+});
+
+function showContract() {
+    const isBoth = document.getElementById('bookBothResorts').checked;
+    const resort = isBoth ? "المنتجعين (تامبا وفيورالاند)" : document.getElementById('resortSelect').value;
+    const name = document.getElementById('customerName').value;
+    const dep = document.getElementById('deposit').value;
+    const rem = document.getElementById('remaining').value;
+    const date = document.getElementById('bookingDate').value;
+    
+    // استخراج اليوم
+    const bookingDateObj = new Date(date);
+    const dayName = bookingDateObj.toLocaleDateString('ar-SA', { weekday: 'long' });
+
+    const isOvernight = document.getElementById('overnight').checked;
+    const isNoPool = document.getElementById('noPool').checked;
+    const isWinterPeriod = document.getElementById('winterPeriod').checked;
+    const isRamadan = document.getElementById('ramadanPeriod').checked;
+    const isTwelveHours = document.getElementById('twelveHours').checked;
+
+    // 1. تحديد رقم الحجز الثابت
+    let bookingID = isBoth ? "100933" : (resort === "منتجع تامبا" ? "100117" : "100201");
+
+    // 2. منطق الحالة والألوان
+    let overnightSpan = isOvernight ? `<span class="text-red">يشمل مبيت</span>` : `<span class="text-green">بدون مبيت</span>`;
+    let poolSpan = isNoPool ? `<span class="text-red">بدون مسبح</span>` : `<span class="text-green">يشمل مسبح</span>`;
+
+    // 3. منطق الساعات والألوان (الأولوية لرمضان)
+    let hoursText = "";
+    let hoursClass = "";
+
+    if (isTwelveHours) {
+    hoursText = "من ٣ عصراً إلى ٣ فجراً";
+    hoursClass = "text-blue";
+} else if (isRamadan) {
+    if (isOvernight) {
+        hoursText = "من ٤ عصراً إلى ١١ صباحاً";
+        hoursClass = "text-red";
+    } else {
+        hoursText = "من ٤ عصراً إلى ٥ فجراً";
+        hoursClass = "text-gold";
+    }
+} else if (isWinterPeriod) {
+        hoursText = isOvernight ? "من ٢ ظهراً إلى ١٠ صباحاً" : "من ٢ ظهراً إلى ٢ ليلاً";
+        hoursClass = isOvernight ? "text-red" : "text-blue";
+    } else {
+        hoursText = isOvernight ? "من ٣ ظهراً إلى ١١ صباحاً" : "من ٣ ظهراً إلى ٦ صباحاً";
+        hoursClass = isOvernight ? "text-red" : "text-green";
+    }
+
+    // بناء واجهة العقد
+    document.getElementById('contract').style.display = "block";
+    document.getElementById('contractTitle').textContent = `عقد إيجار ${resort}`;
+    
+    // توسيط رقم الحجز
+    document.getElementById('bookingNumber').style.textAlign = "center";
+    document.getElementById('bookingNumber').innerHTML = `<div style="color:red; font-weight:bold; font-size:28px; margin: 10px 0;">رقم الحجز: ${bookingID}</div>`;
+    
+    document.getElementById('introText').innerHTML = `
+        <p style="text-align:center; font-size:18px;">
+            أُبرم هذا العقد بين الطرفين:<br>
+            <b>الطرف الأول:</b> ${resort}<br>
+            <b>الطرف الثاني:</b> ${name}
+        </p>
+    `;
+
+    document.getElementById('bookingDetails').innerHTML = `
+        <div style="line-height:2; font-size:16px;">
+            <b>المستأجر:</b> ${name}<br>
+            <b>العربون:</b> ${dep} ريال | <b>المتبقي:</b> ${rem} ريال<br>
+            <b>التاريخ:</b> ${date}<br>
+            <b>اليوم:</b> ${dayName}<br>
+            <b>الحالة:</b> ${overnightSpan} | ${poolSpan}<br>
+            <b>ساعات الحجز:</b> <span class="${hoursClass}" style="font-size:18px;">${hoursText}</span>
+        </div>
+    `;
+
+    // الشروط والأحكام
+    const list = document.getElementById('termsList');
+    let generalTerms = ["العربون غير مسترد","المنتجع غير مسؤول عن فقدان الأغراض الشخصية","في حال الأضرار المادية يتحمل المستأجر كافة التكاليف","يمنع التدخين داخل غرف وصالات المنتجع 🚭","يجب إبلاغ الحارس وقت الخروج لإخلاء المسؤولية","الالتزام بأوقات الدخول والخروج المحددة"];
+    let termsHtml = generalTerms.map(t => `<li style="color:black;">${t}</li>`).join('');
+    
+    if (document.getElementById('summer').checked) 
+        termsHtml += `<li class="text-red">الملعب الصابوني للأطفال ويتحمل المستأجر أي تلفيات في الملعب الصابوني</li>`;
+    if (document.getElementById('winter').checked) 
+        termsHtml += `<li class="text-red">يرجى عدم إشعال النار داخل الخيمة أو على الزيل</li>`;
+    
+    // إضافة الشروط الخاصة التي حددها الموظف من النافذة
+    const selectedCustomTerms = getSelectedCustomTerms();
+    selectedCustomTerms.forEach(t => {
+        termsHtml += `<li class="text-blue">${t}</li>`;
+    });
+    
+    list.innerHTML = termsHtml;
+
+    // تذييل العقد
+    document.getElementById('contractFooter').innerHTML = `
+    <div style="text-align:center; border-top:2px solid #eee; padding-top:10px; margin-top:20px;">
+        تحرر في: ${new Date().toLocaleDateString('ar-SA')} | إدارة ${resort}
+    </div>
+    `;
+    
+    document.getElementById('contract').scrollIntoView({ behavior: 'smooth' });
+}
+
+function recordFinance() {
+    if(isCurrentSaved || !currentUserEmail) return;
+    const resort = document.getElementById('bookBothResorts').checked ? "المنتجعين" : document.getElementById('resortSelect').value;
+    const name = document.getElementById('customerName').value;
+    const total = parseFloat(document.getElementById('deposit').value) + parseFloat(document.getElementById('remaining').value);
+    const date = document.getElementById('bookingDate').value;
+    transactions.push({ id: Date.now(), date: date, type: 'إيجار', amount: total, desc: `حجز ${resort}: ${name}`, owner: currentUserEmail });
+    isCurrentSaved = true;
+    saveSystem();
+}
+
+// أزرار الحفظ والمشاركة
+document.getElementById('saveAllBtn').onclick = function() {
+    recordFinance(); 
+
+    const isBoth = document.getElementById('bookBothResorts').checked;
+    const resort = isBoth ? "المنتجعين (تامبا وفيورالاند)" : document.getElementById('resortSelect').value;
+    const name = document.getElementById('customerName').value;
+    const dep = document.getElementById('deposit').value;
+    const rem = document.getElementById('remaining').value;
+    const date = document.getElementById('bookingDate').value;
+    const bookingDateObj = new Date(date);
+    const dayName = bookingDateObj.toLocaleDateString('ar-SA', { weekday: 'long' });
+    
+    const isOvernight = document.getElementById('overnight').checked;
+    const isWinterPeriod = document.getElementById('winterPeriod').checked;
+    const isRamadan = document.getElementById('ramadanPeriod').checked;
+    const isTwelveHours = document.getElementById('twelveHours').checked;
+    let hours = "";
+
+    if (isTwelveHours) {
+    hours = "من ٣ عصراً إلى ٣ فجراً";
+} else if (isRamadan) {
+    hours = isOvernight ? "من ٤ عصراً إلى ١١ صباحاً" : "من ٤ عصراً إلى ٥ فجراً";
+} else if (isWinterPeriod) {        hours = isOvernight ? "من ٢ ظهراً إلى ١٠ صباحاً" : "من ٢ ظهراً إلى ٢ ليلاً";
+    } else {
+        hours = isOvernight ? "من ٣ ظهراً إلى ١١ صباحاً" : "من ٣ ظهراً إلى ٦ صباحاً";
+    }
+
+    const termsNodes = document.querySelectorAll('#termsList li');
+    let termsText = "";
+    termsNodes.forEach((node, index) => {
+        termsText += `${index + 1}- ${node.innerText}\n`;
+    });
+
+    let location = "";
+    if (isBoth || resort === "منتجع تامبا") {
+        location = "https://maps.app.goo.gl/suBikRXpLu16FJsZA";
+    } else if (resort === "منتجع فيورالاند") {
+        location = "https://maps.app.goo.gl/D2h5iLzgyCY58urL7";
+    }
+
+    const msg = `*عقد إيجار ${resort}*\n\n` +
+                `*المستأجر:* ${name}\n` +
+                `*التاريخ:* ${date}\n` +
+                `*اليوم:* ${dayName}\n` +
+                `*العربون:* ${dep} ريال\n` +
+                `*المتبقي:* ${rem} ريال\n` +
+                `*ساعات الحجز:* ${hours}\n\n` +
+                `*لوكيشن المنتجع:*\n${location}\n\n` +
+                `*رقم الحارس:* 0567863628\n\n` +
+                `*شروط العقد:*\n${termsText}\n` +
+                `*الرجاء الرد بكلمة (موافق) لتوثيق العقد.*`;
+    
+    const actionsDiv = document.querySelector('.actions');
+    actionsDiv.style.display = 'none'; 
+
+    html2canvas(document.getElementById('contract'), { scale: 2 }).then(canvas => {
+        actionsDiv.style.display = 'flex'; 
+        const link = document.createElement('a');
+        link.download = `عقد_${name}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    });
+};
+
+document.getElementById('calendarICSBtn').onclick = function() {
+    recordFinance(); 
+
+    const name = document.getElementById('customerName').value;
+    const dateVal = document.getElementById('bookingDate').value;
+    
+    if(!dateVal) return alert("يرجى اختيار تاريخ الحجز أولاً");
+
+    const dateStr = dateVal.replace(/-/g, '');
+    const startDateString = dateStr + "T000000";
+    const endDateString = dateStr + "T235959";
+
+    const isBoth = document.getElementById('bookBothResorts').checked;
+    const resortName = isBoth ? "المنتجعين" : document.getElementById('resortSelect').value.replace("منتجع ", "");
+    const statusOvernight = document.getElementById('overnight').checked ? "(مبيت)" : "(بدون مبيت)";
+    const statusPool = document.getElementById('noPool').checked ? "(بدون مسبح)" : "(مسبح)";
+    const statusWinter = document.getElementById('winterPeriod').checked ? "(فترة شتوية)" : "";
+
+    const dep = document.getElementById('deposit').value;
+    const rem = document.getElementById('remaining').value;
+    const fullTitle = `${name}، ${dep}-${rem}، (${resortName})، ${statusOvernight} ${statusPool} ${statusWinter}`.trim();
+
+    const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: fullTitle, 
+        dates: `${startDateString}/${endDateString}`,
+        trp: 'false', 
+        sf: 'true',
+        output: 'chrome'
+    });
+
+    window.open(`https://www.google.com/calendar/render?${params.toString()}`, '_blank');
+};
+
+// بدء تشغيل النظام تلقائياً
+window.onload = loadSystem;
+
+function exportToExcel() {
+    const table = document.getElementById("reportTable");
+    if (!table || table.rows.length <= 1) return alert("لا توجد بيانات لتصديرها");
+
+    let csv = [];
+    for (let i = 0; i < table.rows.length; i++) {
+        let row = [], cols = table.rows[i].cells;
+        for (let j = 0; j < cols.length; j++) {
+            let data = cols[j].innerText.replace(/,/g, "").trim();
+            row.push(data);
+        }
+        csv.push(row.join(","));
+    }
+
+    const csvContent = "\uFEFF" + csv.join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    
+    link.setAttribute("href", url);
+    link.setAttribute("download", `تقرير_المنتجع_${new Date().getFullYear()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function exportToImage() {
+    const reportArea = document.getElementById("reportTab");
+    const actions = reportArea.querySelector('.actions');
+    
+    if (actions) actions.style.visibility = 'hidden';
+
+    html2canvas(reportArea, { 
+        scale: 2, 
+        backgroundColor: "#fdf5e6",
+        useCORS: true,
+        width: reportArea.scrollWidth,
+        windowWidth: reportArea.scrollWidth
+    }).then(canvas => {
+        if (actions) actions.style.visibility = 'visible';
+
+        const link = document.createElement('a');
+        link.download = `تقرير_الحسابات_السنوي.png`;
+        link.href = canvas.toDataURL("image/png");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }).catch(err => {
+        if (actions) actions.style.visibility = 'visible';
+        alert("فشل إصدار الصورة؛ جرب استخدام متصفح كروم");
+    });
+}
+</script>
+</body>
+</html>
 
