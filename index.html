@@ -94,22 +94,25 @@
         <input type="number" id="remaining" required>
         <label>تاريخ الحجز:</label>
         <input type="date" id="bookingDate" required>
-        <div class="input-group" style="display: flex; gap: 10px; margin-top: 10px;">
+       <div class="input-group" style="display: flex; gap: 10px; margin-top: 10px;">
             <div style="flex: 1;">
                 <label style="margin-top: 0; font-size: 14px;">من وقت (اختياري):</label>
-                <input type="time" id="timeFrom" style="margin-top: 0;">
+                <input type="time" id="timeFrom" style="margin-top: 0;" onfocus="if(!this.value) this.value='12:00';">
             </div>
             <div style="flex: 1;">
                 <label style="margin-top: 0; font-size: 14px;">إلى وقت (اختياري):</label>
-                <input type="time" id="timeTo" style="margin-top: 0;">
+                <input type="time" id="timeTo" style="margin-top: 0;" onfocus="if(!this.value) this.value='12:00';">
             </div>
         </div>
-        <div class="options-row">
-            <div class="option-block"><input type="checkbox" id="overnight"><label>مبيت</label></div>
-            <div class="option-block"><input type="checkbox" id="noPool"><label>بدون مسبح</label></div>
+        <div class="options-row" style="margin-top: 15px;">
             <div class="option-block"><input type="checkbox" id="winterPeriod"><label>فترة الشتوية</label></div>
             <div class="option-block"><input type="checkbox" id="ramadanPeriod"><label style="color: #d4af37; font-weight: bold;">فترة رمضان 🌙</label></div>
             <div class="option-block"><input type="checkbox" id="twelveHours"><label class="text-blue">١٢ ساعة</label></div>
+        </div>
+        
+        <div class="options-row" style="margin-top: 15px; margin-bottom: 10px; padding-top: 10px; border-top: 1px dashed #ccc;">
+            <div class="option-block"><input type="checkbox" id="overnight"><label>مبيت</label></div>
+            <div class="option-block"><input type="checkbox" id="noPool"><label>بدون مسبح</label></div>
         </div>
         <div id="tampaOptions" style="display:none; flex-direction: row; align-items: center; justify-content: flex-end; gap: 15px;">
             <span style="font-weight:bold;">خاص بتامبا:</span>
@@ -766,10 +769,13 @@ function showContract() {
     
     list.innerHTML = termsHtml;
 
-    // تذييل العقد
+   // تذييل العقد (إجبار النظام على التاريخ الميلادي دائماً)
+    const todayDate = new Date();
+    const gregorianDate = `${todayDate.getDate()}/${todayDate.getMonth() + 1}/${todayDate.getFullYear()}`;
+    
     document.getElementById('contractFooter').innerHTML = `
     <div style="text-align:center; border-top:2px solid #eee; padding-top:10px; margin-top:20px;">
-        تحرر في: ${new Date().toLocaleDateString('ar-SA')} | إدارة ${resort}
+        تحرر في: ${gregorianDate} م | إدارة ${resort}
     </div>
     `;
     
