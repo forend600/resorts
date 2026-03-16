@@ -431,11 +431,21 @@ window.onload = function() {
         },
     });
 
-    // إذا كان مسجلاً دخول مسبقاً، نطلب منه تسجيل الدخول لجلب مفتاح درايف
+    // التحقق الذكي من تسجيل الدخول (تسجيل دخول مرة واحدة فقط)
     if (currentUserEmail) {
-        document.getElementById('loginOverlay').style.display = 'flex';
-    } else {
+        // إخفاء الشاشة فوراً وتحميل النظام لكي يبدأ الموظف عمله بدون انتظار
+        document.getElementById('loginOverlay').style.display = 'none';
         loadSystem();
+        
+        // جلب مفتاح قوقل درايف الجديد "بصمت في الخلفية" بدون إزعاج
+        try {
+            tokenClient.requestAccessToken({prompt: ''});
+        } catch(e) {
+            console.log("جارِ جلب الصلاحيات بالخلفية...");
+        }
+    } else {
+        // إظهار الشاشة فقط للمستخدم الجديد أو الذي قام بتسجيل الخروج يدوياً
+        document.getElementById('loginOverlay').style.display = 'flex';
     }
 };
 
