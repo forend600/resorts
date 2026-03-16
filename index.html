@@ -94,6 +94,16 @@
         <input type="number" id="remaining" required>
         <label>تاريخ الحجز:</label>
         <input type="date" id="bookingDate" required>
+        <div class="input-group" style="display: flex; gap: 10px; margin-top: 10px;">
+            <div style="flex: 1;">
+                <label style="margin-top: 0; font-size: 14px;">من وقت (اختياري):</label>
+                <input type="time" id="timeFrom" style="margin-top: 0;">
+            </div>
+            <div style="flex: 1;">
+                <label style="margin-top: 0; font-size: 14px;">إلى وقت (اختياري):</label>
+                <input type="time" id="timeTo" style="margin-top: 0;">
+            </div>
+        </div>
         <div class="options-row">
             <div class="option-block"><input type="checkbox" id="overnight"><label>مبيت</label></div>
             <div class="option-block"><input type="checkbox" id="noPool"><label>بدون مسبح</label></div>
@@ -675,14 +685,27 @@ function showContract() {
     let overnightSpan = isOvernight ? `<span class="text-red">يشمل مبيت</span>` : `<span class="text-green">بدون مبيت</span>`;
     let poolSpan = isNoPool ? `<span class="text-red">بدون مسبح</span>` : `<span class="text-green">يشمل مسبح</span>`;
 
-    // 3. منطق الساعات والألوان (الأولوية لرمضان)
+    // 3. منطق الساعات والألوان (الأولوية للوقت المخصص ثم لرمضان)
     let hoursText = "";
     let hoursClass = "";
 
-    if (isTwelveHours) {
-    hoursText = "من ٣ عصراً إلى ٣ فجراً";
-    hoursClass = "text-blue";
-} else if (isRamadan) {
+    const timeFromRaw = document.getElementById('timeFrom').value;
+    const timeToRaw = document.getElementById('timeTo').value;
+
+    if (timeFromRaw || timeToRaw) {
+        // إذا قام الموظف بتحديد وقت مخصص
+        hoursClass = "text-gold"; // لون ذهبي لتمييز الوقت المخصص
+        if (timeFromRaw && timeToRaw) {
+            hoursText = `من ${formatCustomTime(timeFromRaw)} إلى ${formatCustomTime(timeToRaw)}`;
+        } else if (timeFromRaw) {
+            hoursText = `من ${formatCustomTime(timeFromRaw)}`;
+        } else if (timeToRaw) {
+            hoursText = `إلى ${formatCustomTime(timeToRaw)}`;
+        }
+    } else if (isTwelveHours) {
+        hoursText = "من ٣ عصراً إلى ٣ فجراً";
+        hoursClass = "text-blue";
+    } else if (isRamadan) {
     if (isOvernight) {
         hoursText = "من ٤ عصراً إلى ١١ صباحاً";
         hoursClass = "text-red";
@@ -764,6 +787,36 @@ function recordFinance() {
     saveSystem();
 }
 
+// دالة تحويل الوقت إلى (فجراً، صباحاً، ظهراً، عصراً، ليلاً) بنظام 12 ساعة
+function formatCustomTime(time24) {
+    if (!time24) return "";
+    let parts = time24.split(':');
+    let hours = parseInt(parts[0]);
+    let minutes = parts[1];
+    let period = "";
+    let hours12 = hours;
+
+    if (hours >= 3 && hours < 6) {
+        period = "فجراً";
+    } else if (hours >= 6 && hours < 12) {
+        period = "صباحاً";
+    } else if (hours >= 12 && hours < 15) {
+        period = "ظهراً";
+    } else if (hours >= 15 && hours < 17) {
+        period = "عصراً";
+    } else {
+        period = "ليلاً";
+    }
+
+    if (hours === 0) {
+        hours12 = 12;
+    } else if (hours > 12) {
+        hours12 = hours - 12;
+    }
+
+    return `${hours12}:${minutes} ${period}`;
+}
+
 // أزرار الحفظ والمشاركة
 document.getElementById('saveAllBtn').onclick = function() {
     recordFinance(); 
@@ -783,11 +836,23 @@ document.getElementById('saveAllBtn').onclick = function() {
     const isTwelveHours = document.getElementById('twelveHours').checked;
     let hours = "";
 
-    if (isTwelveHours) {
-    hours = "من ٣ عصراً إلى ٣ فجراً";
-} else if (isRamadan) {
-    hours = isOvernight ? "من ٤ عصراً إلى ١١ صباحاً" : "من ٤ عصراً إلى ٥ فجراً";
-} else if (isWinterPeriod) {        hours = isOvernight ? "من ٢ ظهراً إلى ١٠ صباحاً" : "من ٢ ظهراً إلى ٢ ليلاً";
+    const timeFromRaw = document.getElementById('timeFrom').value;
+    const timeToRaw = document.getElementById('timeTo').value;
+
+    if (timeFromRaw || timeToRaw) {
+        if (timeFromRaw && timeToRaw) {
+            hours = `من ${formatCustomTime(timeFromRaw)} إلى ${formatCustomTime(timeToRaw)}`;
+        } else if (timeFromRaw) {
+            hours = `من ${formatCustomTime(timeFromRaw)}`;
+        } else if (timeToRaw) {
+            hours = `إلى ${formatCustomTime(timeToRaw)}`;
+        }
+    } else if (isTwelveHours) {
+        hours = "من ٣ عصراً إلى ٣ فجراً";
+    } else if (isRamadan) {
+        hours = isOvernight ? "من ٤ عصراً إلى ١١ صباحاً" : "من ٤ عصراً إلى ٥ فجراً";
+    } else if (isWinterPeriod) {
+        hours = isOvernight ? "من ٢ ظهراً إلى ١٠ صباحاً" : "من ٢ ظهراً إلى ٢ ليلاً";
     } else {
         hours = isOvernight ? "من ٣ ظهراً إلى ١١ صباحاً" : "من ٣ ظهراً إلى ٦ صباحاً";
     }
@@ -826,8 +891,12 @@ document.getElementById('saveAllBtn').onclick = function() {
         link.download = `عقد_${name}.png`;
         link.href = canvas.toDataURL();
         link.click();
-        window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+       window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
     });
+
+    // تفريغ خانات الوقت بعد إرسال الواتساب
+    document.getElementById('timeFrom').value = '';
+    document.getElementById('timeTo').value = '';
 };
 
 document.getElementById('calendarICSBtn').onclick = function() {
@@ -862,6 +931,10 @@ document.getElementById('calendarICSBtn').onclick = function() {
     });
 
     window.open(`https://www.google.com/calendar/render?${params.toString()}`, '_blank');
+
+    // تفريغ خانات الوقت بعد الإضافة للتقويم
+    document.getElementById('timeFrom').value = '';
+    document.getElementById('timeTo').value = '';
 };
 
 // بدء تشغيل النظام تلقائياً
