@@ -206,6 +206,59 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwUCJKgV9fm2tg8WGDlv
     // --- دوال إدارة الشروط الإضافية ---
 let customTerms = JSON.parse(localStorage.getItem('thalathat_custom_terms')) || [];
 
+    // --- محرك مزامنة قوقل درايف (الملفات المخفية) ---
+let driveTermsFileId = null;
+
+async function initDriveTerms() {
+    if (!accessToken) return;
+    try {
+        // 1. البحث عن الملف المخفي
+        const searchRes = await fetch("https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name='custom_terms.json'", {
+            headers: { Authorization: `Bearer ${accessToken}` }
+        });
+        const searchData = await searchRes.json();
+
+        if (searchData.files && searchData.files.length > 0) {
+            // 2. إذا كان موجوداً: جلب الشروط منه
+            driveTermsFileId = searchData.files[0].id;
+            const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${driveTermsFileId}?alt=media`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+            const termsData = await fileRes.json();
+            customTerms = termsData; // تحديث الشروط بالنسخة السحابية
+            localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
+            renderCustomTerms();
+        } else {
+            // 3. إذا لم يكن موجوداً: إنشاؤه لأول مرة
+            const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: 'custom_terms.json', parents: ['appDataFolder'] })
+            });
+            const createData = await createRes.json();
+            driveTermsFileId = createData.id;
+            await syncTermsToDrive(); // رفع أي شروط محلية إليه
+        }
+    } catch (error) {
+        console.error("خطأ في المزامنة مع درايف:", error);
+    }
+}
+
+async function syncTermsToDrive() {
+    if (!accessToken || !driveTermsFileId) return;
+    try {
+        // تحديث محتوى الملف المخفي بالشروط الجديدة
+        await fetch(`https://www.googleapis.com/upload/drive/v3/files/${driveTermsFileId}?uploadType=media`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify(customTerms)
+        });
+    } catch (error) {
+        console.error("خطأ في تحديث الملف:", error);
+    }
+}
+// ------------------------------------------------
+
 function openTermsModal() {
     renderCustomTerms();
     document.getElementById('termsModalOverlay').style.display = 'flex';
@@ -251,6 +304,7 @@ function addCustomTerm() {
         localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
         input.value = '';
         renderCustomTerms();
+        syncTermsToDrive(); // <--- تحديث السحابة
     }
 }
 
@@ -259,6 +313,7 @@ function deleteCustomTerm(id) {
         customTerms = customTerms.filter(t => t.id !== id);
         localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
         renderCustomTerms();
+        syncTermsToDrive(); // <--- تحديث السحابة
     }
 }
 
@@ -269,6 +324,7 @@ function editCustomTerm(id) {
         term.text = newText.trim();
         localStorage.setItem('thalathat_custom_terms', JSON.stringify(customTerms));
         renderCustomTerms();
+        syncTermsToDrive(); // <--- تحديث السحابة
     }
 }
 
@@ -303,6 +359,7 @@ window.onload = function() {
                     currentUserEmail = user.email;
                     localStorage.setItem('thalathat_user_session', currentUserEmail);
                     document.getElementById('loginOverlay').style.display = 'none';
+                    initDriveTerms(); // <--- السطر السحري لبدء المزامنة
                     loadSystem(); 
                 });
             }
