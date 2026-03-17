@@ -413,8 +413,12 @@ window.onload = function() {
         scope: 'https://www.googleapis.com/auth/drive.appdata email',
         callback: (tokenResponse) => {
             if (tokenResponse && tokenResponse.access_token) {
-                accessToken = tokenResponse.access_token; // حفظ المفتاح
-                // جلب إيميل الموظف
+                accessToken = tokenResponse.access_token; 
+                // حفظ المفتاح لمدة 55 دقيقة (أقل من ساعة بقليل لضمان الأمان)
+                const expiryTime = Date.now() + (55 * 60 * 1000); 
+                localStorage.setItem('thalathat_access_token', accessToken);
+                localStorage.setItem('thalathat_token_expiry', expiryTime);
+
                 fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 })
@@ -424,30 +428,54 @@ window.onload = function() {
                     localStorage.setItem('thalathat_user_session', currentUserEmail);
                     document.getElementById('loginOverlay').style.display = 'none';
                     initDriveTerms(); 
-                    initDriveTransactions(); // <--- إضافة مزامنة العمليات
+                    initDriveTransactions(); 
                     loadSystem(); 
                 });
             }
         },
     });
 
-    // التحقق الذكي من تسجيل الدخول (تسجيل دخول مرة واحدة فقط)
-    if (currentUserEmail) {
-        // إخفاء الشاشة فوراً وتحميل النظام لكي يبدأ الموظف عمله بدون انتظار
+    // التحقق من الجلسة والمفتاح المحفوظ
+    const savedToken = localStorage.getItem('thalathat_access_token');
+    const tokenExpiry = localStorage.getItem('thalathat_token_expiry');
+    const now = Date.now();
+
+    if (currentUserEmail && savedToken && tokenExpiry && now < parseInt(tokenExpiry)) {
+        // 🟢 الحالة الأولى: الجلسة صالحة. دخول صامت تماماً! لا نوافذ ولا أزرار.
+        accessToken = savedToken;
         document.getElementById('loginOverlay').style.display = 'none';
+        initDriveTerms();
+        initDriveTransactions();
         loadSystem();
-        
-        // جلب مفتاح قوقل درايف الجديد "بصمت في الخلفية" بدون إزعاج
-        try {
-            tokenClient.requestAccessToken({prompt: ''});
-        } catch(e) {
-            console.log("جارِ جلب الصلاحيات بالخلفية...");
-        }
-    } else {
-        // إظهار الشاشة فقط للمستخدم الجديد أو الذي قام بتسجيل الخروج يدوياً
+    } else if (currentUserEmail) {
+        // 🟡 الحالة الثانية: انتهت الساعة. نظهر زر التجديد فقط (بدون نوافذ تلقائية).
         document.getElementById('loginOverlay').style.display = 'flex';
+        const msg = document.querySelector('#loginOverlay p');
+        const btn = document.querySelector('#loginOverlay button');
+        if(msg) msg.innerText = "انتهت الجلسة السحابية. يرجى تجديد الاتصال.";
+        if(btn) btn.innerText = "تجديد الاتصال 🔄";
+        loadSystem(); 
+    } else {
+        // 🔴 الحالة الثالثة: مستخدم جديد أو تم تسجيل الخروج.
+        document.getElementById('loginOverlay').style.display = 'flex';
+        loadSystem();
     }
 };
+
+// النافذة تفتح فقط وفقط إذا ضغط المستخدم بيده على الزر
+function handleLoginClick() {
+    tokenClient.requestAccessToken();
+}
+
+function logout() {
+    if(confirm("هل تريد تسجيل الخروج؟")) {
+        localStorage.removeItem('thalathat_user_session');
+        localStorage.removeItem('thalathat_v5_data');
+        localStorage.removeItem('thalathat_access_token');
+        localStorage.removeItem('thalathat_token_expiry');
+        location.reload();
+    }
+}
 
 // تشغيل النافذة عند الضغط على الزر
 function handleLoginClick() {
