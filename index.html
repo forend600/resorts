@@ -144,6 +144,9 @@
 
 <div id="dailyTab" class="tab-content">
     <h1>الحسابات اليومية</h1>
+    
+    <button id="forceMigrateBtn" onclick="forceMigration()" style="background: var(--brand-red); color: white; padding: 15px; border: none; border-radius: 8px; width: 100%; font-weight: bold; font-size: 16px; margin-bottom: 15px; cursor: pointer;">🚀 ترحيل البيانات للإكسل الجديد (اضغط مرة واحدة)</button>
+
     <div class="card">
         <h3>إضافة/تعديل عملية</h3>
         <input type="hidden" id="editId">
@@ -1054,6 +1057,38 @@ function exportToImage() {
         alert("فشل إصدار الصورة؛ جرب استخدام متصفح كروم");
     });
 }
+
+// --------------------------------------------------
+// دالة الترحيل الإجباري (تسحب البيانات من الجهاز وترفعها للإكسل والسحابة)
+async function forceMigration() {
+    const localData = JSON.parse(localStorage.getItem('thalathat_v5_data')) || [];
+    if (localData.length === 0) {
+        alert("⚠️ لا توجد بيانات في هذا الجهاز لترحيلها!");
+        return;
+    }
+
+    const btn = document.getElementById('forceMigrateBtn');
+    btn.innerText = "جاري الترحيل... الرجاء عدم إغلاق الصفحة ⏳";
+    btn.style.background = "var(--brand-gold)";
+    btn.disabled = true;
+
+    try {
+        transactions = localData;
+        await pushToCloud(); // إرسال للإكسل المركزي
+        await syncTransactionsToDrive(); // رفع لسحابة الموظف
+
+        btn.innerText = "✅ تمت عملية الترحيل بنجاح!";
+        btn.style.background = "var(--brand-green)";
+        alert(`تم ترحيل ${localData.length} عملية بنجاح! راجع ملف الإكسل الإداري الجديد الآن.`);
+    } catch (error) {
+        alert("حدث خطأ أثناء الترحيل. تأكد من اتصالك بالإنترنت.");
+        btn.innerText = "فشل الترحيل ❌";
+        btn.style.background = "var(--brand-red)";
+        btn.disabled = false;
+    }
+}
+// --------------------------------------------------
+
 </script>
 </body>
 </html>
