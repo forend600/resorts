@@ -289,13 +289,26 @@ async function initDriveTransactions() {
             const fileRes = await fetch(`https://www.googleapis.com/drive/v3/files/${driveTransFileId}?alt=media`, {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
-            const transData = await fileRes.json();
-            transactions = transData; // تحديث العمليات
-            localStorage.setItem('thalathat_v5_data', JSON.stringify(transactions));
+            const driveData = await fileRes.json();
+
+            // 🛡️ درع الترحيل الذكي (مقارنة البيانات لحمايتها من الضياع)
+            const localData = JSON.parse(localStorage.getItem('thalathat_v5_data')) || [];
+            
+            if (localData.length > driveData.length) {
+                // إذا كان الجهاز القديم يحتوي على عمليات أكثر من السحابة -> اعتمد الجهاز وارفع بياناته!
+                transactions = localData;
+                await syncTransactionsToDrive(); 
+                console.log("تم حماية البيانات القديمة ورفعها بنجاح!");
+            } else {
+                // الوضع الطبيعي -> الاعتماد على السحابة
+                transactions = driveData;
+                localStorage.setItem('thalathat_v5_data', JSON.stringify(transactions));
+            }
+
             renderDailyTable();
             renderReportTable();
         } else {
-            // إنشاء الملف لأول مرة (ورفع العمليات القديمة إن وجدت)
+            // إنشاء الملف لأول مرة
             const createRes = await fetch("https://www.googleapis.com/drive/v3/files", {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
@@ -303,6 +316,12 @@ async function initDriveTransactions() {
             });
             const createData = await createRes.json();
             driveTransFileId = createData.id;
+            
+            // 🛡️ حماية إضافية: إذا كان الملف جديداً، ارفع بيانات الجهاز القديمة فوراً
+            const localData = JSON.parse(localStorage.getItem('thalathat_v5_data')) || [];
+            if(localData.length > 0) {
+                 transactions = localData;
+            }
             await syncTransactionsToDrive(); 
         }
     } catch (error) {
